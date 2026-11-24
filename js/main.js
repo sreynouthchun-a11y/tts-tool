@@ -25,13 +25,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let voices = [];
     let isPaused = false;
+    let currentAudio = null;
+    let isUsingGoogleTTS = false;
 
     // Load Voices
     function loadVoices() {
         voices = speechSynthesis.getVoices();
         
         if (voices.length === 0) {
-            // Some browsers load voices asynchronously
             speechSynthesis.onvoiceschanged = function() {
                 voices = speechSynthesis.getVoices();
                 populateVoiceSelect();
@@ -44,6 +45,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateVoiceSelect() {
         voiceSelect.innerHTML = '';
         
+        // Add Google TTS Khmer option at the top
+        const khmerOption = document.createElement('option');
+        khmerOption.value = 'google-khmer';
+        khmerOption.textContent = '🇰🇭 Khmer (Google TTS) - សំឡេងខ្មែរ';
+        voiceSelect.appendChild(khmerOption);
+
+        // Add separator
+        const separator = document.createElement('option');
+        separator.disabled = true;
+        separator.textContent = '── Browser Voices ──';
+        voiceSelect.appendChild(separator);
+
         // Sort voices: English first, then others alphabetically
         const sortedVoices = [...voices].sort(function(a, b) {
             const aEn = a.lang.startsWith('en') ? 0 : 1;
@@ -54,18 +67,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
         sortedVoices.forEach(function(voice, index) {
             const option = document.createElement('option');
-            option.value = index;
+            option.value = 'browser-' + index;
             option.textContent = voice.name + ' (' + voice.lang + ')';
             voiceSelect.appendChild(option);
         });
 
-        // Select first English voice by default
-        const englishVoice = sortedVoices.findIndex(function(v) {
-            return v.lang.startsWith('en');
+        // Select Khmer Google TTS by default
+        voiceSelect.value = 'google-khmer';
+    }
+
+    // Google Translate TTS (for Khmer)
+    function speakWithGoogleTTS(text, lang) {
+        return new Promise(function(resolve, reject) {
+            // Split text into chunks of max 200 chars
+            const chunks = [];
+            let remaining = text;
+            
+            while (remaining.length > 0) {
+                let splitIndex = remaining.lastIndexOf('. ', 200);
+                if (splitIndex === -1 || splitIndex < 50) {
+                    splitIndex = remaining.lastIndexOf(' ', 200);
+                }
+                if (splitIndex === -1 || splitIndex < 50) {
+                    splitIndex = 200;
+                }
+                
+                chunks.push(remaining.substring(0, splitIndex + 1));
+                remaining = remaining.substring(splitIndex + 1);
+            }
+
+            let audioIndex = 0;
+            
+            function playNextChunk() {
+                if (audioIndex >= chunks.length) {
+                    resolve();
+                    return;
+                }
+
+                const chunk = chunks[audioIndex];
+                const encodedText = encodeURIComponent(chunk);
+                const url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encodedText + '&tl=' + lang + '&client=tw-ob';
+                
+                const audio = new Audio(url);
+                currentAudio = audio;
+                
+                audio.onplay = function() {
+                    status.classList.remove('hidden');
+                    statusText.textContent = '🇰🇭 Speaking Khmer... (' + (audioIndex + 1) + '/' + chunks.length + ')';
+                };
+                
+                audio.onended = function() {
+                    audioIndex++;
+                    playNextChunk();
+                };
+                
+                audio.onerror = function() {
+                    audioIndex++;
+                    if (audioIndex < chunks.length) {
+                        playNextChunk();
+                    } else {
+                        reject(new Error('Failed to play audio'));
+                    }
+                };
+                
+                audio.play().catch(function(err) {
+                    reject(err);
+                });
+            }
+            
+            playNextChunk();
         });
-        if (englishVoice !== -1) {
-            voiceSelect.value = englishVoice;
-        }
     }
 
     // Initialize
@@ -98,15 +169,45 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Cancel any existing speech
-        speechSynthesis.cancel();
+        // Stop any existing speech
+        stopAllSpeech();
 
+        const selectedVoice = voiceSelect.value;
+
+        // Check if using Google TTS for Khmer
+        if (selectedVoice === 'google-khmer') {
+            isUsingGoogleTTS = true;
+            speakBtn.disabled = true;
+            stopBtn.disabled = false;
+            pauseBtn.disabled = true;
+            
+            speakWithGoogleTTS(text, 'km')
+                .then(function() {
+                    status.classList.add('hidden');
+                    speakBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    isUsingGoogleTTS = false;
+                })
+                .catch(function(err) {
+                    statusText.textContent = '⚠️ Error: Could not play Khmer audio. Try again or use a browser voice.';
+                    status.classList.remove('hidden');
+                    speakBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    isUsingGoogleTTS = false;
+                });
+            return;
+        }
+
+        // Use browser Web Speech API
+        isUsingGoogleTTS = false;
         const utterance = new SpeechSynthesisUtterance(text);
         
         // Set voice
-        const selectedVoiceIndex = parseInt(voiceSelect.value);
-        if (voices[selectedVoiceIndex]) {
-            utterance.voice = voices[selectedVoiceIndex];
+        if (selectedVoice.startsWith('browser-')) {
+            const voiceIndex = parseInt(selectedVoice.replace('browser-', ''));
+            if (voices[voiceIndex]) {
+                utterance.voice = voices[voiceIndex];
+            }
         }
 
         // Set properties
@@ -117,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Events
         utterance.onstart = function() {
             status.classList.remove('hidden');
-            statusText.textContent = 'Speaking...';
+            statusText.textContent = '🔊 Speaking...';
             speakBtn.disabled = true;
             pauseBtn.disabled = false;
             stopBtn.disabled = false;
@@ -135,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         utterance.onerror = function(e) {
             if (e.error !== 'canceled' && e.error !== 'interrupted') {
-                statusText.textContent = 'Error: ' + e.error;
+                statusText.textContent = '⚠️ Error: ' + e.error;
                 status.classList.remove('hidden');
             }
             speakBtn.disabled = false;
@@ -147,30 +248,45 @@ document.addEventListener('DOMContentLoaded', function() {
         speechSynthesis.speak(utterance);
     });
 
+    function stopAllSpeech() {
+        speechSynthesis.cancel();
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.src = '';
+            currentAudio = null;
+        }
+        isPaused = false;
+        pauseBtn.textContent = '⏸️ Pause';
+    }
+
     // Pause/Resume
     pauseBtn.addEventListener('click', function() {
+        if (isUsingGoogleTTS) {
+            alert('⚠️ Pause is not supported for Google TTS. Please stop and restart.');
+            return;
+        }
+        
         if (!isPaused) {
             speechSynthesis.pause();
             isPaused = true;
             this.textContent = '▶️ Resume';
-            statusText.textContent = 'Paused...';
+            statusText.textContent = '⏸️ Paused...';
         } else {
             speechSynthesis.resume();
             isPaused = false;
             this.textContent = '⏸️ Pause';
-            statusText.textContent = 'Speaking...';
+            statusText.textContent = '🔊 Speaking...';
         }
     });
 
     // Stop
     stopBtn.addEventListener('click', function() {
-        speechSynthesis.cancel();
+        stopAllSpeech();
         status.classList.add('hidden');
         speakBtn.disabled = false;
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
-        isPaused = false;
-        pauseBtn.textContent = '⏸️ Pause';
+        isUsingGoogleTTS = false;
     });
 
     // Back to Top
@@ -215,12 +331,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = this.parentElement;
             const isActive = item.classList.contains('active');
             
-            // Close all
             document.querySelectorAll('.faq-item').forEach(function(i) {
                 i.classList.remove('active');
             });
             
-            // Open clicked if it wasn't active
             if (!isActive) {
                 item.classList.add('active');
             }

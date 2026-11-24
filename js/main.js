@@ -1,6 +1,6 @@
 // ============================================
 // VoiceGen - Text to Speech JavaScript
-// Uses Microsoft Edge TTS for Khmer (free, no API key)
+// Uses Vercel Serverless Function for Microsoft Edge TTS
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -27,10 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let voices = [];
     let isPaused = false;
     let currentAudio = null;
-    let isUsingEdgeTTS = false;
-    let isSpeaking = false;
+    let isUsingServerTTS = false;
 
-    // Microsoft Edge TTS Voices (free, no API key)
+    // Microsoft Edge TTS Voices (via serverless function)
     const edgeVoices = [
         { id: 'km-KH-SreymomNeural', name: '🇰🇭 Sreymom (Female) - Khmer', lang: 'km-KH' },
         { id: 'km-KH-PisethNeural', name: '🇰🇭 Piseth (Male) - Khmer', lang: 'km-KH' },
@@ -66,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add Microsoft Edge TTS option
         const msHeader = document.createElement('option');
         msHeader.disabled = true;
-        msHeader.textContent = '── 🇲🇸 Microsoft Edge TTS (Best Quality) ──';
+        msHeader.textContent = '── 🇲🇸 Microsoft Neural Voices (Best Quality) ──';
         voiceSelect.appendChild(msHeader);
 
         edgeVoices.forEach(function(v) {
@@ -101,153 +100,62 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // Microsoft Edge TTS (Free, No API Key)
-    // Uses WebSocket to connect to Edge's TTS service
+    // Server-side TTS (via Vercel serverless function)
     // ============================================
-    function speakWithEdgeTTS(text, voiceId) {
+    function speakWithServerTTS(text, voiceId) {
         return new Promise(function(resolve, reject) {
-            const wsUrl = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC=V%2F0w39R0%2Fq0l%2FQm%2FfW%2F0m%2F0m%2F0m&Sec-MS-GEC-Version=1-0.1';
+            statusText.textContent = '⏳ Generating audio...';
             
-            let ws;
-            let audioChunks = [];
-            let audioBlob = null;
-            let isComplete = false;
-
-            try {
-                ws = new WebSocket(wsUrl);
-            } catch (e) {
-                reject(new Error('WebSocket connection failed'));
-                return;
-            }
-
-            const timeout = setTimeout(function() {
-                if (!isComplete) {
-                    ws.close();
-                    reject(new Error('Connection timeout'));
+            // Send request to serverless function
+            fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    voice: voiceId,
+                    rate: rateSlider.value,
+                    pitch: pitchSlider.value,
+                    volume: volumeSlider.value
+                })
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.status);
                 }
-            }, 30000);
+                return response.blob();
+            })
+            .then(function(blob) {
+                if (blob.size === 0) {
+                    throw new Error('Empty audio response');
+                }
+                
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                currentAudio = audio;
 
-            ws.onopen = function() {
-                // Send config
-                const config = {
-                    context: {
-                        synthesis: {
-                            audio: {
-                                autostop: true,
-                                rate: rateSlider.value + '%',
-                                pitch: pitchSlider.value + 'Hz',
-                                volume: Math.round(volumeSlider.value * 100) + '%'
-                            }
-                        }
-                    },
-                    configuration: {
-                        request: {
-                            task: 'speech synthesis',
-                            format: 'audio-24khz-48kbitrate-mono-mp3'
-                        },
-                        context: {
-                            synthesis: {
-                                audio: {
-                                    metadata: {
-                                        category: 'conversation'
-                                    }
-                                }
-                            }
-                        }
-                    }
+                audio.onplay = function() {
+                    status.classList.remove('hidden');
+                    statusText.textContent = '🔊 Playing...';
                 };
 
-                const configMsg = 'X-Config: ' + JSON.stringify(config) + '\r\n\r\n';
-                ws.send(configMsg);
+                audio.onended = function() {
+                    URL.revokeObjectURL(url);
+                    currentAudio = null;
+                    resolve();
+                };
 
-                // Send text
-                const ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="' + getLangFromVoice(voiceId) + '"><voice name="' + voiceId + '">' + escapeXml(text) + '</voice></speak>';
-                const textMsg = 'SpeechSynthesisRequest: ' + ssml + '\r\n\r\n';
-                ws.send(textMsg);
+                audio.onerror = function() {
+                    URL.revokeObjectURL(url);
+                    currentAudio = null;
+                    reject(new Error('Audio playback error'));
+                };
 
-                // Send end
-                ws.send('speech.synthesis.request\r\n\r\n');
-            };
-
-            ws.onmessage = function(event) {
-                if (typeof event.data === 'string') {
-                    if (event.data.indexOf('turn:audio') !== -1) {
-                        // Audio data follows
-                    } else if (event.data.indexOf('turn:end') !== -1) {
-                        isComplete = true;
-                        clearTimeout(timeout);
-                        ws.close();
-                        
-                        if (audioChunks.length > 0) {
-                            audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                            playAudioBlob(audioBlob, resolve, reject);
-                        } else {
-                            reject(new Error('No audio received'));
-                        }
-                    }
-                } else if (event.data instanceof ArrayBuffer) {
-                    audioChunks.push(new Blob([event.data]));
-                }
-            };
-
-            ws.onerror = function() {
-                clearTimeout(timeout);
-                if (!isComplete) {
-                    reject(new Error('WebSocket error'));
-                }
-            };
-
-            ws.onclose = function() {
-                clearTimeout(timeout);
-                if (!isComplete && audioChunks.length > 0) {
-                    isComplete = true;
-                    audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                    playAudioBlob(audioBlob, resolve, reject);
-                }
-            };
+                audio.play().catch(reject);
+            })
+            .catch(function(err) {
+                reject(err);
+            });
         });
-    }
-
-    function getLangFromVoice(voiceId) {
-        const v = edgeVoices.find(function(v) { return v.id === voiceId; });
-        return v ? v.lang : 'en-US';
-    }
-
-    function escapeXml(text) {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;');
-    }
-
-    function playAudioBlob(blob, resolve, reject) {
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        currentAudio = audio;
-
-        audio.onplay = function() {
-            status.classList.remove('hidden');
-            statusText.textContent = '🔊 Playing...';
-            isSpeaking = true;
-        };
-
-        audio.onended = function() {
-            URL.revokeObjectURL(url);
-            currentAudio = null;
-            isSpeaking = false;
-            resolve();
-        };
-
-        audio.onerror = function() {
-            URL.revokeObjectURL(url);
-            currentAudio = null;
-            isSpeaking = false;
-            reject(new Error('Audio playback error'));
-        };
-
-        audio.play().catch(reject);
     }
 
     // Initialize
@@ -285,35 +193,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const selectedVoice = voiceSelect.value;
 
-        // Check if using Microsoft Edge TTS
+        // Check if using Server TTS
         if (selectedVoice.startsWith('edge-')) {
             const voiceId = selectedVoice.replace('edge-', '');
-            isUsingEdgeTTS = true;
+            isUsingServerTTS = true;
             speakBtn.disabled = true;
             stopBtn.disabled = false;
             pauseBtn.disabled = true;
             status.classList.remove('hidden');
-            statusText.textContent = '⏳ Connecting to Microsoft TTS...';
+            statusText.textContent = '⏳ Generating audio...';
             
-            speakWithEdgeTTS(text, voiceId)
+            speakWithServerTTS(text, voiceId)
                 .then(function() {
                     status.classList.add('hidden');
                     speakBtn.disabled = false;
                     stopBtn.disabled = true;
-                    isUsingEdgeTTS = false;
+                    isUsingServerTTS = false;
                 })
                 .catch(function(err) {
-                    statusText.textContent = '⚠️ Error: ' + err.message + '. Try again or use a browser voice.';
+                    statusText.textContent = '⚠️ Error: ' + err.message;
                     status.classList.remove('hidden');
                     speakBtn.disabled = false;
                     stopBtn.disabled = true;
-                    isUsingEdgeTTS = false;
+                    isUsingServerTTS = false;
                 });
             return;
         }
 
         // Use browser Web Speech API
-        isUsingEdgeTTS = false;
+        isUsingServerTTS = false;
         const utterance = new SpeechSynthesisUtterance(text);
         
         // Set voice
@@ -370,14 +278,13 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAudio = null;
         }
         isPaused = false;
-        isSpeaking = false;
         pauseBtn.textContent = '⏸️ Pause';
     }
 
     // Pause/Resume
     pauseBtn.addEventListener('click', function() {
-        if (isUsingEdgeTTS) {
-            alert('⚠️ Pause is not supported for Microsoft TTS. Please stop and restart.');
+        if (isUsingServerTTS) {
+            alert('⚠️ Pause is not supported for server TTS. Please stop and restart.');
             return;
         }
         
@@ -401,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         speakBtn.disabled = false;
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
-        isUsingEdgeTTS = false;
+        isUsingServerTTS = false;
     });
 
     // Back to Top

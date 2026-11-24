@@ -1,5 +1,6 @@
 // ============================================
 // VoiceGen - Text to Speech JavaScript
+// Uses Microsoft Edge TTS for Khmer (free, no API key)
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -26,9 +27,26 @@ document.addEventListener('DOMContentLoaded', function() {
     let voices = [];
     let isPaused = false;
     let currentAudio = null;
-    let isUsingGoogleTTS = false;
+    let isUsingEdgeTTS = false;
+    let isSpeaking = false;
 
-    // Load Voices
+    // Microsoft Edge TTS Voices (free, no API key)
+    const edgeVoices = [
+        { id: 'km-KH-SreymomNeural', name: '🇰🇭 Sreymom (Female) - Khmer', lang: 'km-KH' },
+        { id: 'km-KH-PisethNeural', name: '🇰🇭 Piseth (Male) - Khmer', lang: 'km-KH' },
+        { id: 'en-US-AriaNeural', name: '🇺🇸 Aria (Female) - English US', lang: 'en-US' },
+        { id: 'en-US-GuyNeural', name: '🇺🇸 Guy (Male) - English US', lang: 'en-US' },
+        { id: 'en-GB-SoniaNeural', name: '🇬🇧 Sonia (Female) - English UK', lang: 'en-GB' },
+        { id: 'th-TH-PremwadeeNeural', name: '🇹🇭 Premwadee (Female) - Thai', lang: 'th-TH' },
+        { id: 'vi-VN-HoaiMyNeural', name: '🇻🇳 HoaiMy (Female) - Vietnamese', lang: 'vi-VN' },
+        { id: 'zh-CN-XiaoxiaoNeural', name: '🇨🇳 Xiaoxiao (Female) - Chinese', lang: 'zh-CN' },
+        { id: 'ja-JP-NanamiNeural', name: '🇯🇵 Nanami (Female) - Japanese', lang: 'ja-JP' },
+        { id: 'ko-KR-SunHiNeural', name: '🇰🇷 SunHi (Female) - Korean', lang: 'ko-KR' },
+        { id: 'id-ID-ArdiNeural', name: '🇮🇩 Ardi (Male) - Indonesian', lang: 'id-ID' },
+        { id: 'fr-FR-DeniseNeural', name: '🇫🇷 Denise (Female) - French', lang: 'fr-FR' },
+    ];
+
+    // Load Browser Voices
     function loadVoices() {
         voices = speechSynthesis.getVoices();
         
@@ -45,19 +63,25 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateVoiceSelect() {
         voiceSelect.innerHTML = '';
         
-        // Add Google TTS Khmer option at the top
-        const khmerOption = document.createElement('option');
-        khmerOption.value = 'google-khmer';
-        khmerOption.textContent = '🇰🇭 Khmer (Google TTS) - សំឡេងខ្មែរ';
-        voiceSelect.appendChild(khmerOption);
+        // Add Microsoft Edge TTS option
+        const msHeader = document.createElement('option');
+        msHeader.disabled = true;
+        msHeader.textContent = '── 🇲🇸 Microsoft Edge TTS (Best Quality) ──';
+        voiceSelect.appendChild(msHeader);
 
-        // Add separator
-        const separator = document.createElement('option');
-        separator.disabled = true;
-        separator.textContent = '── Browser Voices ──';
-        voiceSelect.appendChild(separator);
+        edgeVoices.forEach(function(v) {
+            const option = document.createElement('option');
+            option.value = 'edge-' + v.id;
+            option.textContent = v.name;
+            voiceSelect.appendChild(option);
+        });
 
-        // Sort voices: English first, then others alphabetically
+        // Add Browser Voices
+        const browserHeader = document.createElement('option');
+        browserHeader.disabled = true;
+        browserHeader.textContent = '── Browser Voices ──';
+        voiceSelect.appendChild(browserHeader);
+
         const sortedVoices = [...voices].sort(function(a, b) {
             const aEn = a.lang.startsWith('en') ? 0 : 1;
             const bEn = b.lang.startsWith('en') ? 0 : 1;
@@ -72,71 +96,158 @@ document.addEventListener('DOMContentLoaded', function() {
             voiceSelect.appendChild(option);
         });
 
-        // Select Khmer Google TTS by default
-        voiceSelect.value = 'google-khmer';
+        // Select Khmer Sreymom by default
+        voiceSelect.value = 'edge-km-KH-SreymomNeural';
     }
 
-    // Google Translate TTS (for Khmer)
-    function speakWithGoogleTTS(text, lang) {
+    // ============================================
+    // Microsoft Edge TTS (Free, No API Key)
+    // Uses WebSocket to connect to Edge's TTS service
+    // ============================================
+    function speakWithEdgeTTS(text, voiceId) {
         return new Promise(function(resolve, reject) {
-            // Split text into chunks of max 200 chars
-            const chunks = [];
-            let remaining = text;
+            const wsUrl = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC=V%2F0w39R0%2Fq0l%2FQm%2FfW%2F0m%2F0m%2F0m&Sec-MS-GEC-Version=1-0.1';
             
-            while (remaining.length > 0) {
-                let splitIndex = remaining.lastIndexOf('. ', 200);
-                if (splitIndex === -1 || splitIndex < 50) {
-                    splitIndex = remaining.lastIndexOf(' ', 200);
-                }
-                if (splitIndex === -1 || splitIndex < 50) {
-                    splitIndex = 200;
-                }
-                
-                chunks.push(remaining.substring(0, splitIndex + 1));
-                remaining = remaining.substring(splitIndex + 1);
+            let ws;
+            let audioChunks = [];
+            let audioBlob = null;
+            let isComplete = false;
+
+            try {
+                ws = new WebSocket(wsUrl);
+            } catch (e) {
+                reject(new Error('WebSocket connection failed'));
+                return;
             }
 
-            let audioIndex = 0;
-            
-            function playNextChunk() {
-                if (audioIndex >= chunks.length) {
-                    resolve();
-                    return;
+            const timeout = setTimeout(function() {
+                if (!isComplete) {
+                    ws.close();
+                    reject(new Error('Connection timeout'));
                 }
+            }, 30000);
 
-                const chunk = chunks[audioIndex];
-                const encodedText = encodeURIComponent(chunk);
-                const url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encodedText + '&tl=' + lang + '&client=tw-ob';
-                
-                const audio = new Audio(url);
-                currentAudio = audio;
-                
-                audio.onplay = function() {
-                    status.classList.remove('hidden');
-                    statusText.textContent = '🇰🇭 Speaking Khmer... (' + (audioIndex + 1) + '/' + chunks.length + ')';
-                };
-                
-                audio.onended = function() {
-                    audioIndex++;
-                    playNextChunk();
-                };
-                
-                audio.onerror = function() {
-                    audioIndex++;
-                    if (audioIndex < chunks.length) {
-                        playNextChunk();
-                    } else {
-                        reject(new Error('Failed to play audio'));
+            ws.onopen = function() {
+                // Send config
+                const config = {
+                    context: {
+                        synthesis: {
+                            audio: {
+                                autostop: true,
+                                rate: rateSlider.value + '%',
+                                pitch: pitchSlider.value + 'Hz',
+                                volume: Math.round(volumeSlider.value * 100) + '%'
+                            }
+                        }
+                    },
+                    configuration: {
+                        request: {
+                            task: 'speech synthesis',
+                            format: 'audio-24khz-48kbitrate-mono-mp3'
+                        },
+                        context: {
+                            synthesis: {
+                                audio: {
+                                    metadata: {
+                                        category: 'conversation'
+                                    }
+                                }
+                            }
+                        }
                     }
                 };
-                
-                audio.play().catch(function(err) {
-                    reject(err);
-                });
-            }
-            
-            playNextChunk();
+
+                const configMsg = 'X-Config: ' + JSON.stringify(config) + '\r\n\r\n';
+                ws.send(configMsg);
+
+                // Send text
+                const ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="' + getLangFromVoice(voiceId) + '"><voice name="' + voiceId + '">' + escapeXml(text) + '</voice></speak>';
+                const textMsg = 'SpeechSynthesisRequest: ' + ssml + '\r\n\r\n';
+                ws.send(textMsg);
+
+                // Send end
+                ws.send('speech.synthesis.request\r\n\r\n');
+            };
+
+            ws.onmessage = function(event) {
+                if (typeof event.data === 'string') {
+                    if (event.data.indexOf('turn:audio') !== -1) {
+                        // Audio data follows
+                    } else if (event.data.indexOf('turn:end') !== -1) {
+                        isComplete = true;
+                        clearTimeout(timeout);
+                        ws.close();
+                        
+                        if (audioChunks.length > 0) {
+                            audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                            playAudioBlob(audioBlob, resolve, reject);
+                        } else {
+                            reject(new Error('No audio received'));
+                        }
+                    }
+                } else if (event.data instanceof ArrayBuffer) {
+                    audioChunks.push(new Blob([event.data]));
+                }
+            };
+
+            ws.onerror = function() {
+                clearTimeout(timeout);
+                if (!isComplete) {
+                    reject(new Error('WebSocket error'));
+                }
+            };
+
+            ws.onclose = function() {
+                clearTimeout(timeout);
+                if (!isComplete && audioChunks.length > 0) {
+                    isComplete = true;
+                    audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    playAudioBlob(audioBlob, resolve, reject);
+                }
+            };
         });
+    }
+
+    function getLangFromVoice(voiceId) {
+        const v = edgeVoices.find(function(v) { return v.id === voiceId; });
+        return v ? v.lang : 'en-US';
+    }
+
+    function escapeXml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+
+    function playAudioBlob(blob, resolve, reject) {
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        currentAudio = audio;
+
+        audio.onplay = function() {
+            status.classList.remove('hidden');
+            statusText.textContent = '🔊 Playing...';
+            isSpeaking = true;
+        };
+
+        audio.onended = function() {
+            URL.revokeObjectURL(url);
+            currentAudio = null;
+            isSpeaking = false;
+            resolve();
+        };
+
+        audio.onerror = function() {
+            URL.revokeObjectURL(url);
+            currentAudio = null;
+            isSpeaking = false;
+            reject(new Error('Audio playback error'));
+        };
+
+        audio.play().catch(reject);
     }
 
     // Initialize
@@ -174,32 +285,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const selectedVoice = voiceSelect.value;
 
-        // Check if using Google TTS for Khmer
-        if (selectedVoice === 'google-khmer') {
-            isUsingGoogleTTS = true;
+        // Check if using Microsoft Edge TTS
+        if (selectedVoice.startsWith('edge-')) {
+            const voiceId = selectedVoice.replace('edge-', '');
+            isUsingEdgeTTS = true;
             speakBtn.disabled = true;
             stopBtn.disabled = false;
             pauseBtn.disabled = true;
+            status.classList.remove('hidden');
+            statusText.textContent = '⏳ Connecting to Microsoft TTS...';
             
-            speakWithGoogleTTS(text, 'km')
+            speakWithEdgeTTS(text, voiceId)
                 .then(function() {
                     status.classList.add('hidden');
                     speakBtn.disabled = false;
                     stopBtn.disabled = true;
-                    isUsingGoogleTTS = false;
+                    isUsingEdgeTTS = false;
                 })
                 .catch(function(err) {
-                    statusText.textContent = '⚠️ Error: Could not play Khmer audio. Try again or use a browser voice.';
+                    statusText.textContent = '⚠️ Error: ' + err.message + '. Try again or use a browser voice.';
                     status.classList.remove('hidden');
                     speakBtn.disabled = false;
                     stopBtn.disabled = true;
-                    isUsingGoogleTTS = false;
+                    isUsingEdgeTTS = false;
                 });
             return;
         }
 
         // Use browser Web Speech API
-        isUsingGoogleTTS = false;
+        isUsingEdgeTTS = false;
         const utterance = new SpeechSynthesisUtterance(text);
         
         // Set voice
@@ -256,13 +370,14 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAudio = null;
         }
         isPaused = false;
+        isSpeaking = false;
         pauseBtn.textContent = '⏸️ Pause';
     }
 
     // Pause/Resume
     pauseBtn.addEventListener('click', function() {
-        if (isUsingGoogleTTS) {
-            alert('⚠️ Pause is not supported for Google TTS. Please stop and restart.');
+        if (isUsingEdgeTTS) {
+            alert('⚠️ Pause is not supported for Microsoft TTS. Please stop and restart.');
             return;
         }
         
@@ -286,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
         speakBtn.disabled = false;
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
-        isUsingGoogleTTS = false;
+        isUsingEdgeTTS = false;
     });
 
     // Back to Top

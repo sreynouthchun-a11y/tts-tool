@@ -1,0 +1,9 @@
+{
+  "name": "tts-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Text to Speech tool using Microsoft Edge TTS via Vercel serverless function",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

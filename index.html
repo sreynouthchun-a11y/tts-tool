@@ -36,13 +36,13 @@
     <section class="hero" id="generator">
         <div class="hero-bg"></div>
         <div class="container hero-content">
-            <div class="hero-badge">🆓 100% Free • No Signup • Works in Browser</div>
+            <div class="hero-badge">🇰🇭 100% Free • Khmer Support • No Signup</div>
             <h1 class="hero-title">
                 Convert Text to <span class="gradient-text">Natural Speech</span>
             </h1>
             <p class="hero-subtitle">
-                Type or paste your text, choose a voice, and generate speech instantly. 
-                Supports multiple languages including Khmer, English, and more.
+                Type or paste your text in Khmer or English, choose a voice, and generate speech instantly. 
+                Khmer voice powered by Google TTS.
             </p>
         </div>
     </section>
@@ -56,9 +56,9 @@
                     <h3>📝 Your Text</h3>
                     <textarea id="ttsText" placeholder="Type or paste your text here...
 
-Example: ជម្រាបសួរ! នេះជាឧទាហរណ៍ Text to Speech ជាភាសាខ្មែរ។
+Example (Khmer): ជម្រាបសួរ! នេះជាឧទាហរណ៍ Text to Speech ជាភាសាខ្មែរ។ បងអាចវាយសរសេរអ្វីក៏បាន។
 
-Hello! This is a Text to Speech example in English." rows="10"></textarea>
+Example (English): Hello! This is a Text to Speech example in English.">ជម្រាបសួរ! នេះជាឧទាហរណ៍ Text to Speech ជាភាសាខ្មែរ។ បងអាចវាយសរសេរអ្វីក៏បាន ហើយស្តាប់សំឡេងភ្លាមៗ។</textarea>
                     <div class="char-count">
                         <span id="charCount">0</span> characters
                     </div>
@@ -102,6 +102,11 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                         <span class="status-icon">🔊</span>
                         <span id="statusText">Speaking...</span>
                     </div>
+
+                    <!-- Tip -->
+                    <div class="tip-box">
+                        💡 <strong>Tip:</strong> Select "🇰🇭 Khmer (Google TTS)" for Khmer voice. Speed/Pitch/Volume sliders work with browser voices only.
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,34 +122,34 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
             </div>
             <div class="features-grid">
                 <div class="feature-card">
+                    <div class="feature-icon">🇰🇭</div>
+                    <h3>Khmer Voice</h3>
+                    <p>Native Khmer text-to-speech powered by Google TTS. Type in Khmer and hear it spoken naturally.</p>
+                </div>
+                <div class="feature-card">
                     <div class="feature-icon">🆓</div>
                     <h3>100% Free</h3>
-                    <p>No hidden fees, no credit card, no signup. Just type and speak.</p>
+                    <p>No hidden fees, no credit card, no signup. Just type and speak. Unlimited usage.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">⚡</div>
                     <h3>Instant Results</h3>
-                    <p>Speech generates in real-time. No waiting for server processing.</p>
+                    <p>Speech generates in real-time. No waiting for server processing or queue.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🌍</div>
                     <h3>Multi-Language</h3>
-                    <p>Access all voices available in your browser, including Khmer, English, and more.</p>
+                    <p>Khmer via Google TTS, plus all browser voices for English, Thai, Vietnamese, and more.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🔒</div>
                     <h3>Private & Secure</h3>
-                    <p>Everything runs in your browser. Your text never leaves your device.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎛️</div>
-                    <h3>Full Control</h3>
-                    <p>Adjust speed, pitch, and volume to get the perfect voice output.</p>
+                    <p>Browser voices run locally. Google TTS only sends text to Google for audio generation.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📱</div>
                     <h3>Works Everywhere</h3>
-                    <p>Use on desktop, tablet, or mobile. No installation needed.</p>
+                    <p>Use on desktop, tablet, or mobile. No installation needed. Just open and go.</p>
                 </div>
             </div>
         </div>
@@ -156,7 +161,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
             <div class="section-header">
                 <span class="section-tag">More Tools</span>
                 <h2 class="section-title">Best TTS Tools for Production</h2>
-                <p class="section-subtitle">For higher quality or specific needs, check out these professional TTS platforms.</p>
+                <p class="section-subtitle">For higher quality, downloadable audio, or voice cloning, check out these professional TTS platforms.</p>
             </div>
             <div class="tools-grid">
                 <div class="tool-card">
@@ -168,7 +173,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                             <span class="tool-price">Free tier • $5/mo</span>
                         </div>
                     </div>
-                    <p>The most realistic AI voices. Voice cloning, 29+ languages, and Dubbing Studio for video.</p>
+                    <p>The most realistic AI voices. Voice cloning, 29+ languages, and Dubbing Studio for video. Best for production quality.</p>
                     <div class="tool-footer">
                         <a href="https://elevenlabs.io" target="_blank" class="btn btn-primary btn-sm">Try ElevenLabs →</a>
                     </div>
@@ -182,7 +187,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                             <span class="tool-price">Free credits available</span>
                         </div>
                     </div>
-                    <p>Specialized in Khmer TTS and dubbing. Per-speaker voice cloning with agentic workflow.</p>
+                    <p>Specialized in Khmer TTS and dubbing. Per-speaker voice cloning with agentic workflow. 5,000 free credits.</p>
                     <div class="tool-footer">
                         <a href="https://www.camb.ai" target="_blank" class="btn btn-outline btn-sm">Try CAMB.AI →</a>
                     </div>
@@ -196,7 +201,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                             <span class="tool-price">Free tier • Pay-per-use</span>
                         </div>
                     </div>
-                    <p>2 neural Khmer voices (Sreymom, Piseth). Best for production apps and IVR systems.</p>
+                    <p>2 neural Khmer voices (Sreymom - female, Piseth - male). Best for production apps, IVR systems, and AI agents.</p>
                     <div class="tool-footer">
                         <a href="https://azure.microsoft.com/en-us/products/ai-services/ai-speech" target="_blank" class="btn btn-outline btn-sm">Try Azure →</a>
                     </div>
@@ -210,7 +215,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                             <span class="tool-price">Free • No credit card</span>
                         </div>
                     </div>
-                    <p>Text to speech with 80+ languages, voice cloning, and auto captions. Great for social media.</p>
+                    <p>Text to speech with 80+ languages, voice cloning, and auto captions. Great for social media content.</p>
                     <div class="tool-footer">
                         <a href="https://fliki.ai" target="_blank" class="btn btn-outline btn-sm">Try Fliki →</a>
                     </div>
@@ -229,20 +234,20 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
             <div class="faq-grid">
                 <div class="faq-item">
                     <button class="faq-question">
-                        <span>Is this tool really free?</span>
-                        <span class="faq-icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes! VoiceGen is 100% free with no limits. It uses your browser's built-in Web Speech API, so there are no server costs. You can generate as much speech as you want.</p>
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <button class="faq-question">
                         <span>Does it support Khmer language?</span>
                         <span class="faq-icon">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Khmer support depends on your browser and operating system. Chrome on Windows/Mac typically includes Khmer voices. If you don't see Khmer in the voice list, try using a professional tool like CAMB.AI or Azure AI Speech which have dedicated Khmer voices.</p>
+                        <p>Yes! Select "🇰🇭 Khmer (Google TTS)" from the voice dropdown. Type your text in Khmer and click Speak. The audio is generated by Google's TTS engine. For higher quality Khmer voices, try CAMB.AI or Azure AI Speech.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Is this tool really free?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! VoiceGen is 100% free with no limits. Browser voices use the Web Speech API (no cost). Khmer voice uses Google Translate TTS (free). You can generate as much speech as you want.</p>
                     </div>
                 </div>
                 <div class="faq-item">
@@ -251,7 +256,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                         <span class="faq-icon">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>The browser's Web Speech API doesn't support direct audio download. For downloadable audio files, use professional tools like ElevenLabs, CAMB.AI, or Fliki AI which let you export MP3/WAV files.</p>
+                        <p>The browser's Web Speech API and Google TTS don't support direct audio download. For downloadable MP3/WAV files, use professional tools like ElevenLabs, CAMB.AI, or Fliki AI.</p>
                     </div>
                 </div>
                 <div class="faq-item">
@@ -260,7 +265,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                         <span class="faq-icon">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes! All processing happens locally in your browser. Your text is never sent to any server. It's as private as typing in a notepad app.</p>
+                        <p>Browser voices: 100% private, everything runs locally. Khmer (Google TTS): text is sent to Google's servers for audio generation, similar to using Google Translate. No data is stored.</p>
                     </div>
                 </div>
                 <div class="faq-item">
@@ -269,7 +274,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                         <span class="faq-icon">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Chrome and Edge have the best voice support with the most available voices. Firefox and Safari also work but may have fewer voice options. We recommend Chrome for the best experience.</p>
+                        <p>Chrome and Edge have the best voice support. Khmer (Google TTS) works in all modern browsers. Firefox and Safari also work but may have fewer browser voice options.</p>
                     </div>
                 </div>
                 <div class="faq-item">
@@ -278,7 +283,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                         <span class="faq-icon">+</span>
                     </button>
                     <div class="faq-answer">
-                        <p>VoiceGen uses your browser's built-in voices (free, instant, but limited quality). ElevenLabs uses advanced AI models for much more natural, human-like voices with voice cloning. Use VoiceGen for quick tests, and ElevenLabs for production quality.</p>
+                        <p>VoiceGen uses browser voices + Google TTS (free, instant, but limited quality). ElevenLabs uses advanced AI for much more natural, human-like voices with voice cloning and downloadable audio. Use VoiceGen for quick tests, ElevenLabs for production.</p>
                     </div>
                 </div>
             </div>
@@ -289,11 +294,11 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
     <section class="cta-section">
         <div class="container">
             <div class="cta-content">
-                <h2>Need Production-Quality Audio?</h2>
+                <h2>Need Production-Quality Khmer Audio?</h2>
                 <p>For professional voiceovers, voice cloning, or downloadable audio files, try these tools:</p>
                 <div class="cta-buttons">
-                    <a href="https://elevenlabs.io" target="_blank" class="btn btn-white btn-lg">🔊 ElevenLabs</a>
-                    <a href="https://www.camb.ai" target="_blank" class="btn btn-outline-white btn-lg">🇰🇭 CAMB.AI</a>
+                    <a href="https://www.camb.ai" target="_blank" class="btn btn-white btn-lg">🇰🇭 CAMB.AI</a>
+                    <a href="https://elevenlabs.io" target="_blank" class="btn btn-outline-white btn-lg">🔊 ElevenLabs</a>
                     <a href="https://fliki.ai" target="_blank" class="btn btn-outline-white btn-lg">⚡ Fliki AI</a>
                 </div>
             </div>
@@ -309,7 +314,7 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                         <span class="logo-icon">🔊</span>
                         <span class="logo-text">Voice<span class="accent">Gen</span></span>
                     </a>
-                    <p>Free Text to Speech tool that runs entirely in your browser. No signup, no limits, no tracking.</p>
+                    <p>Free Text to Speech tool with Khmer support. Runs in your browser. No signup, no limits.</p>
                     <div class="social-links">
                         <a href="#" aria-label="Facebook">📘</a>
                         <a href="#" aria-label="Instagram">📷</a>
@@ -328,15 +333,15 @@ Hello! This is a Text to Speech example in English." rows="10"></textarea>
                 <div class="footer-col">
                     <h4>Pro Tools</h4>
                     <ul>
+                        <li><a href="https://www.camb.ai" target="_blank">CAMB.AI (Khmer)</a></li>
                         <li><a href="https://elevenlabs.io" target="_blank">ElevenLabs</a></li>
-                        <li><a href="https://www.camb.ai" target="_blank">CAMB.AI</a></li>
                         <li><a href="https://fliki.ai" target="_blank">Fliki AI</a></li>
                         <li><a href="https://azure.microsoft.com/en-us/products/ai-services/ai-speech" target="_blank">Azure AI Speech</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
                     <h4>How It Works</h4>
-                    <p>VoiceGen uses the Web Speech API built into modern browsers. All processing happens locally on your device — no data is sent to any server.</p>
+                    <p>Khmer voice: Google Translate TTS. Other voices: Web Speech API (browser built-in). No server costs, no tracking.</p>
                 </div>
             </div>
             <div class="footer-bottom">
